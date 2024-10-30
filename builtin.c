@@ -7,6 +7,8 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
+#include <pwd.h>
+#include <grp.h>
 #include <time.h>
 #include <fcntl.h>
 #include <ctype.h>
@@ -54,7 +56,7 @@ static void cmdB_touch(char** args, int argc);
 int builtIn(char** args, int argcp)
 {
   pwd(args, argcp);
-  cd(args, argcp);
+  //cd(args, argcp);
   pwd(args, argcp);
 
   cmdB_stat(args, argcp);
@@ -75,41 +77,60 @@ static void cmdB_stat(char** args, int argc)
   }
 
   // Print the file's metadata
-  printf("File Name: %s\n", filepath);
-  printf("Size: %lld bytes\n", (long long)file_info.st_size);
-  printf("Blocks: %lld\n", (long long)file_info.st_blocks);
-  printf("IO Block: %ld\n", (long)file_info.st_blksize);
+  printf("\nFile Name: %s\n", filepath);
+  printf("Size: %lld\t", (long long)file_info.st_size);
+  printf("Blocks: %lld\t", (long long)file_info.st_blocks);
+  printf("IO Block: %ld ", (long)file_info.st_blksize);
 
-  // Determine file type
   if (S_ISREG(file_info.st_mode)) {
-    printf("Type: Regular file\n");
+    printf("regular file\n");
   } else if (S_ISDIR(file_info.st_mode)) {
-    printf("Type: Directory\n");
+    printf("directory\n");
   } else if (S_ISLNK(file_info.st_mode)) {
-    printf("Type: Symbolic link\n");
+    printf("symbolic link\n");
   } else {
-    printf("Type: Other\n");
+    printf("other\n");
   }
 
-  // // Print file permissions
-  // printf("Permissions: (%o) ", file_info.st_mode & 0777);
-  // printf("User: (%s)\n", 
-  //   (file_info.st_mode & S_IRUSR ? "r" : "-") +
-  //   (file_info.st_mode & S_IWUSR ? "w" : "-") +
-  //   (file_info.st_mode & S_IXUSR ? "x" : "-"));
+  printf("Device: %lx\tInode: %lu\t", (unsigned long)file_info.st_dev, (unsigned long)file_info.st_ino);
+  printf("Links: %ld\n", (long)file_info.st_nlink);
 
-  // Print User ID and Group ID
-  printf("UID: %d\tGID: %d\n", file_info.st_uid, file_info.st_gid);
+  int mode = file_info.st_mode & 0777; // Mask to get the permission bits
+  printf("Permissions: (%03o/", mode); // Print numeric permissions
+    
+  printf("%c", (file_info.st_mode & S_IFDIR) ? 'd' : '-');
+  printf("%c", (file_info.st_mode & S_IRUSR) ? 'r' : '-');
+  printf("%c", (file_info.st_mode & S_IWUSR) ? 'w' : '-');
+  printf("%c", (file_info.st_mode & S_IXUSR) ? 'x' : '-');
+  printf("%c", (file_info.st_mode & S_IRGRP) ? 'r' : '-');
+  printf("%c", (file_info.st_mode & S_IWGRP) ? 'w' : '-');
+  printf("%c", (file_info.st_mode & S_IXGRP) ? 'x' : '-');
+  printf("%c", (file_info.st_mode & S_IROTH) ? 'r' : '-');
+  printf("%c", (file_info.st_mode & S_IWOTH) ? 'w' : '-');
+  printf("%c", (file_info.st_mode & S_IXOTH) ? 'x' : '-');
+  printf(")\t");
 
-  // // Print timestamps
+  struct passwd *pw = getpwuid(file_info.st_uid); // Get the passwd struct for the UID
+  if (pw != NULL) {
+    printf("UID: (%d, %s)\t", file_info.st_uid, pw->pw_name); // Print UID and username
+  }
+
+  struct group *gr = getgrgid(file_info.st_gid); // Get the group struct for the GID
+  // Print GID in the desired format
+  if (gr != NULL) {
+    printf("GID: (%d, %s)\n", file_info.st_gid, gr->gr_name); // Print GID and group name
+  }
+
+
+  // Print timestamps
   // char atime[20], mtime[20], ctime[20];
   // strftime(atime, sizeof(atime), "%Y-%m-%d %H:%M:%S", localtime(&file_info.st_atime));
   // strftime(mtime, sizeof(mtime), "%Y-%m-%d %H:%M:%S", localtime(&file_info.st_mtime));
   // strftime(ctime, sizeof(ctime), "%Y-%m-%d %H:%M:%S", localtime(&file_info.st_ctime));
-
-  // printf("Access Time: %s\n", atime);
-  // printf("Modify Time: %s\n", mtime);
-  // printf("Change Time: %s\n", ctime);
+  
+  // printf("Access: %s\n", atime);
+  // printf("Modify: %s\n", mtime);
+  // printf("Change: %s\n", ctime);
 }
 
 /*
@@ -151,7 +172,7 @@ static void pwd(char** args, int argpc)
         perror("getcwd() error");
         return;
     }
-    
+
     printf("%s\n", cwd);
 }
 
