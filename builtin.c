@@ -7,11 +7,14 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
+#include <time.h>
 #include <fcntl.h>
 #include <ctype.h>
 #include "builtin.h"
 #include <string.h>
 #include <dirent.h>
+
+#define MAX_PATH_LENGTH 128
 
 //Prototypes
 static void exitProgram(char** args, int argcp);
@@ -50,7 +53,63 @@ static void cmdB_touch(char** args, int argc);
 */
 int builtIn(char** args, int argcp)
 {
-    //write your code
+  pwd(args, argcp);
+  cd(args, argcp);
+  pwd(args, argcp);
+
+  cmdB_stat(args, argcp);
+
+  exitProgram(args, argcp);
+
+  return 1;
+}
+
+static void cmdB_stat(char** args, int argc)
+{
+  struct stat file_info;
+  char *filepath = "argparse.c";
+  
+  if (stat(filepath, &file_info) == -1) {
+    perror("stat");
+    return;
+  }
+
+  // Print the file's metadata
+  printf("File Name: %s\n", filepath);
+  printf("Size: %lld bytes\n", (long long)file_info.st_size);
+  printf("Blocks: %lld\n", (long long)file_info.st_blocks);
+  printf("IO Block: %ld\n", (long)file_info.st_blksize);
+
+  // Determine file type
+  if (S_ISREG(file_info.st_mode)) {
+    printf("Type: Regular file\n");
+  } else if (S_ISDIR(file_info.st_mode)) {
+    printf("Type: Directory\n");
+  } else if (S_ISLNK(file_info.st_mode)) {
+    printf("Type: Symbolic link\n");
+  } else {
+    printf("Type: Other\n");
+  }
+
+  // // Print file permissions
+  // printf("Permissions: (%o) ", file_info.st_mode & 0777);
+  // printf("User: (%s)\n", 
+  //   (file_info.st_mode & S_IRUSR ? "r" : "-") +
+  //   (file_info.st_mode & S_IWUSR ? "w" : "-") +
+  //   (file_info.st_mode & S_IXUSR ? "x" : "-"));
+
+  // Print User ID and Group ID
+  printf("UID: %d\tGID: %d\n", file_info.st_uid, file_info.st_gid);
+
+  // // Print timestamps
+  // char atime[20], mtime[20], ctime[20];
+  // strftime(atime, sizeof(atime), "%Y-%m-%d %H:%M:%S", localtime(&file_info.st_atime));
+  // strftime(mtime, sizeof(mtime), "%Y-%m-%d %H:%M:%S", localtime(&file_info.st_mtime));
+  // strftime(ctime, sizeof(ctime), "%Y-%m-%d %H:%M:%S", localtime(&file_info.st_ctime));
+
+  // printf("Access Time: %s\n", atime);
+  // printf("Modify Time: %s\n", mtime);
+  // printf("Change Time: %s\n", ctime);
 }
 
 /*
@@ -66,7 +125,9 @@ int builtIn(char** args, int argcp)
 */
 static void exitProgram(char** args, int argcp)
 {
- //write your code
+  int code = 0;
+  printf("Goodbye\n");
+  exit(code);
 }
 
 /*
@@ -84,8 +145,14 @@ static void exitProgram(char** args, int argcp)
 */
 static void pwd(char** args, int argpc)
 {
-  //write your code
+  char cwd[MAX_PATH_LENGTH];
 
+    if (getcwd(cwd, sizeof(cwd)) == NULL) {
+        perror("getcwd() error");
+        return;
+    }
+    
+    printf("%s\n", cwd);
 }
 
 /*
@@ -110,5 +177,10 @@ static void pwd(char** args, int argpc)
 */
 static void cd(char** args, int argcp)
 {
- //write your code
+  char *path = "..";
+
+  if (chdir(path) != 0) {
+    perror("chdir() error");
+    return;
+  }
 }

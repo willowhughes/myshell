@@ -32,6 +32,10 @@ ssize_t getinput(char** line, size_t* size);
 */
 int main () {
 
+  char** args;
+  int argcp = 0;
+  processline("yo");
+
  //write your code
 
   return EXIT_SUCCESS;
@@ -101,4 +105,6 @@ void processline (char *line)
    *if not builtin, fork to execute the command.
    */
     //write your code
+
+  builtIn(arguments, argCount);
 }
